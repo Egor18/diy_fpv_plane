@@ -1,5 +1,5 @@
 #include <Servo.h>
-#include <Wire.h>
+#include "I2C.h"
 
 #define BAUD_RATE 57600
 
@@ -58,6 +58,8 @@ Servo aileronRightServo;
 Servo cameraServo;
 Servo engineESC;
 
+boolean i2cError = false;
+
 void setup()
 {
   pinMode(13, OUTPUT);
@@ -81,16 +83,25 @@ void setup()
   engineESC.writeMicroseconds(ENGINE_START);
 
   Serial.begin(BAUD_RATE);
-  Wire.begin();
+  I2c.begin();
+  I2c.timeOut(100);
 
   delay(500);
 }
 
 void SendByteToOSD(unsigned char data)
 {
-  Wire.beginTransmission(OSD_WIRE_ADDR);
-  Wire.write(data);
-  Wire.endTransmission();
+  if (i2cError)
+  {
+    return;
+  }
+  uint8_t rc = I2c.write((uint8_t)OSD_WIRE_ADDR, data);
+  if (rc != 0 && rc < 8)
+  {
+    // I2C timeout occured
+    // Stop all communication with OSD, to prevent further delays
+    i2cError = true;
+  }
 }
 
 void ProcessPackageData(unsigned char bytes[4])
@@ -165,10 +176,14 @@ void loop()
     }
   }
 
-  if (millis() - lastDataReceivedTime > 5000 && lastDataReceivedTime != 0)
+  if (millis() - lastDataReceivedTime > 4000 && lastDataReceivedTime != 0)
   {
+    // Connection is lost
+    // Engine off, elevator down
     SendByteToOSD(LOST_CONN);
-    engineESC.writeMicroseconds(map(0, MIN_THROTTLE, MAX_THROTTLE, ENGINE_START, ENGINE_END));
+    engineESC.writeMicroseconds(ENGINE_START);
+    elevatorServo.writeMicroseconds(ELEVATOR_END);
     SendByteToOSD(0);
+    delay(150);
   }
 }

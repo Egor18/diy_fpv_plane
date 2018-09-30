@@ -71,6 +71,7 @@ pygame.display.set_caption(' ')
 screen = pygame.display.set_mode([280, 160])
 clock = pygame.time.Clock()
 start_time = time.time()
+last_sync = 0
 port = serial.Serial(PORT_NAME, BAUD_RATE)
 
 if pygame.joystick.get_count() > 0:
@@ -131,6 +132,11 @@ while not done:
                 camera = MAX_POS // 2
             Package(Channel.CAMERA, camera).send(port)
 
+    elapsed_seconds = int(time.time() - start_time)
+    if elapsed_seconds - last_sync > 0:
+        Package(Channel.THROTTLE, throttle).send(port)
+        last_sync = elapsed_seconds
+
     screen.fill(WHITE)
     draw_text(screen, f'{PORT_NAME} - {BAUD_RATE}', 5, 5)
     draw_text(screen, f'THROTTLE: {throttle * 2}%', 5, 30)
@@ -138,7 +144,6 @@ while not done:
     draw_text(screen, f'ELEVATOR: {elevator}', 5, 70)
     draw_text(screen, f'RUDDER: {rudder}', 5, 90)
     draw_text(screen, f'CAMERA: {camera}', 5, 110)
-    elapsed_seconds = int(time.time() - start_time)
     elapsed_time = str(datetime.timedelta(seconds=elapsed_seconds))
     draw_text(screen, f'TIME: {elapsed_time}', 5, 135)
 
@@ -150,7 +155,7 @@ while not done:
     y = map_range(MAX_POS - elevator, MIN_POS, MAX_POS, 3, height - 4)
     pygame.draw.rect(screen, RED, [offset_x + x - 3, offset_y + y - 3, 7, 7])
     pygame.draw.rect(screen, BLACK, [offset_x, offset_y, width, height], 1)
-    pygame.draw.line(screen, BLACK, [offset_x + width / 2, offset_y], [offset_x + width/2, offset_y + height - 1], 1)
+    pygame.draw.line(screen, BLACK, [offset_x + width / 2, offset_y], [offset_x + width / 2, offset_y + height - 1], 1)
     pygame.draw.line(screen, BLACK, [offset_x, offset_y + height / 2], [offset_x + width - 1, offset_y + height / 2], 1)
 
     offset_x = 150
