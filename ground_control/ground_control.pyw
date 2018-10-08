@@ -100,7 +100,7 @@ while not done:
                 Package(Channel.OSD, OSDCommand.SET_HOME).send(port)
         elif event.type == pygame.JOYAXISMOTION:
             if event.axis == 0:
-                axis_x = event.value
+                axis_x = -event.value
                 new_aileron = int(map_range(axis_x, -1.0, 1.0, MIN_POS, MAX_POS) + 0.5)
                 if new_aileron != aileron:
                     aileron = new_aileron
